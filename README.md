@@ -9,6 +9,6 @@ A simple weather app written in PyQt5
 ```bash
 git clone https://github.com/Crilum/pyqt5-weather-app
 cd pyqt5-weather-app
-python3 weahterUi.py
+python3 weatherUi.py
 ```
 Note: `weatherUi.py` must be run in the same directory as the ui files.
