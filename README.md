@@ -12,3 +12,6 @@ cd pyqt5-weather-app
 python3 weatherUi.py
 ```
 Note: `weatherUi.py` must be run in the same directory as the ui files.
+
+## Credits
+- [weatherDB](https://weatherdbi.herokuapp.com) - Awesome API!
