@@ -115,16 +115,19 @@ class Forecast():
 
 
 def out(type, msg):
-    if not prefs.output == "None":
-        if prefs.output == "Debug":
-            if str(type).__contains__("debug") or str(type).__contains__("info") or str(type).__contains__("error"):
-                print(f"{type}| {str(msg)}")
-        elif prefs.output == "Info":
-            if str(type).__contains__("info") or  str(type).__contains__("error"):
-                print(f"{type}| {str(msg)}")
-        elif prefs.output == "Errors only":
-            if str(type).__contains__("error"):
-                print(f"{type}| {str(msg)}")
+    if os.path.isfile(f"{os.path.expanduser('~')}/.config/weatherGui/preferences.txt"):
+        if not prefs.output == "None":
+            if prefs.output == "Debug":
+                if str(type).__contains__("debug") or str(type).__contains__("info") or str(type).__contains__("error"):
+                    print(f"{type}| {str(msg)}")
+            elif prefs.output == "Info":
+                if str(type).__contains__("info") or  str(type).__contains__("error"):
+                    print(f"{type}| {str(msg)}")
+            elif prefs.output == "Errors only":
+                if str(type).__contains__("error"):
+                    print(f"{type}| {str(msg)}")
+    else:
+        print(f"{type}| {str(msg)}")
 
 
 class weatherGui(QMainWindow):
