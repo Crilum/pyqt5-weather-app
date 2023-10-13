@@ -21,4 +21,4 @@ This app uses data from OpenWeatherMap to display weather data:
 - For the current weather
 - And also the raw JSON from the API
 
-The app features many themes and a fewe fun options.
+The app features many themes and a few other fun options.
