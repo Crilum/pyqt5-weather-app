@@ -13,7 +13,7 @@ import os
 from qt_material import apply_stylesheet
 from qt_material import list_themes
 
-key = "8cfc4c5891e0179d78546e9ce0ff2235"
+key = "YOUR_Open_Weather_Map_KEY_HERE"
 
 def getWeatherEmoji(status_code, dt, sunrise, sunset):
     if list(str(status_code))[0] == "2":
