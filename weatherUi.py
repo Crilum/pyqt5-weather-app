@@ -8,12 +8,51 @@ import requests
 from geopy.geocoders import Nominatim
 import json
 from pathlib import Path
-import sys
+from time import ctime
 import os
 from qt_material import apply_stylesheet
 from qt_material import list_themes
 
+key = "8cfc4c5891e0179d78546e9ce0ff2235"
 
+def getWeatherEmoji(status_code, dt, sunrise, sunset):
+    if list(str(status_code))[0] == "2":
+        return "⛈️"
+    elif list(str(status_code))[0] == "3":
+        return "☔"
+    elif list(str(status_code))[0] == "5":
+        return "🌧️"
+    elif list(str(status_code))[0] == "6":
+        return "🌨️"
+    elif str(status_code) == "741":
+        return "🌫️"
+    elif str(status_code) == "781":
+        return "🌪️"
+    elif list(str(status_code))[0] == "7":
+        return "🌫️"
+    elif str(status_code) == "800" and dt > sunrise:
+        return "☀️"
+    elif str(status_code) == "800" and dt < sunrise or status_code == "800" and dt > sunset:
+        return "☽"
+    elif str(status_code) == "801":
+        return "🌤️"
+    elif str(status_code) == "802":
+        return "⛅"
+    elif str(status_code) == "803":
+        return "🌥️"
+    elif str(status_code) == "804":
+        return "☁️"
+    else:
+        out("debug@getWeatherEmoji", "Error: Unmapped status code: " + str(status_code))
+        return "❓"
+    
+def makeFirstUpper(string):
+        UpperLetter = list(string)[0].upper()
+        theRest = list(string)
+        theRest.remove(UpperLetter.lower())
+        theRest.insert(0, UpperLetter)
+        return ''.join(theRest)
+    
 class Forecast():
     def __init__(self, json):
 
@@ -22,19 +61,24 @@ class Forecast():
                 f"{os.path.expanduser('~')}/.config/weatherGui/preferences.txt", 'r')
             content = conf.readlines()
             self.fmt = content[0].split(" ")[1].strip()
-            #print(f"debug@format| Setting format to '{self.fmt}'..")
+            out("debug@format", f"Setting format to '{self.fmt}'..")
             if self.fmt == "Imperial":
-                self.jsonFmt = "mile"
+                self.jsonFmt = "imperial"
                 self.jsonTemp = "f"
                 self.prettyTemp = "F"
                 self.prettyWind = "mph"
             elif self.fmt == "Metric":
-                self.jsonFmt = "km"
+                self.jsonFmt = "metric"
                 self.jsonTemp = "c"
                 self.prettyTemp = "C"
                 self.prettyWind = "km/h"
+            elif self.fmt == "Standard":
+                self.jsonFmt = "standard"
+                self.jsonTemp = "k"
+                self.prettyTemp = "K"
+                self.prettyWind = "m/sec"
             else:
-                self.jsonFmt = "mile"
+                self.jsonFmt = "imperial"
                 self.jsonTemp = "f"
                 self.prettyTemp = "F"
                 self.prettyWind = "mph"
@@ -43,75 +87,18 @@ class Forecast():
                     "Error:\nBad format config!\nIf you changed the config manually, please check it.")
                 message.exec_()
         else:
-            print('debug@format| Not loading conf, conffile not found')
+            out('debug@format', 'Not loading conf, conffile not found')
         self.json = json
-        self.forecast_days = json["next_days"]
-        self.currCond = json["currentConditions"]
-
-        if 1 == 1:
-            mo = self.forecast_days[0]
-            day_ = mo["day"]
-            moHigh = mo["max_temp"][self.jsonTemp]
-            moLow = mo["min_temp"][self.jsonTemp]
-            moCond = mo["comment"]
-            self.mo_forecast = f"Today    -      High: {moHigh}° {self.prettyTemp}      Low: {moLow}° {self.prettyTemp}           {moCond}"
-            out("debug@forecast", self.mo_forecast)
-
-            tu = self.forecast_days[1]
-            day_ = tu["day"]
-            tuHigh = tu["max_temp"][self.jsonTemp]
-            tuLow = tu["min_temp"][self.jsonTemp]
-            tuCond = tu["comment"]
-            self.tu_forecast = f"{day_}     -     High: {tuHigh}° {self.prettyTemp}      Low: {tuLow}° {self.prettyTemp}           {tuCond}"
-            out("debug@forecast", self.tu_forecast)
-
-            we = self.forecast_days[2]
-            day_ = we["day"]
-            weHigh = we["max_temp"][self.jsonTemp]
-            weLow = we["min_temp"][self.jsonTemp]
-            weCond = we["comment"]
-            self.we_forecast = f"{day_}     -     High: {weHigh}° {self.prettyTemp}      Low: {weLow}° {self.prettyTemp}           {weCond}"
-            out("debug@forecast", self.we_forecast)
-
-            th = self.forecast_days[3]
-            day_ = th["day"]
-            thHigh = th["max_temp"][self.jsonTemp]
-            thLow = th["min_temp"][self.jsonTemp]
-            thCond = th["comment"]
-            self.th_forecast = f"{day_}     -    High: {thHigh}° {self.prettyTemp}      Low: {thLow}° {self.prettyTemp}           {thCond}"
-            out("debug@forecast", self.th_forecast)
-
-            fr = self.forecast_days[4]
-            day_ = fr["day"]
-            frHigh = fr["max_temp"][self.jsonTemp]
-            frLow = fr["min_temp"][self.jsonTemp]
-            frCond = fr["comment"]
-            self.fr_forecast = f"{day_}     -     High: {frHigh}° {self.prettyTemp}     Low: {frLow}° {self.prettyTemp}           {frCond}"
-            out("debug@forecast", self.fr_forecast)
-
-            sa = self.forecast_days[5]
-            day_ = sa["day"]
-            saHigh = sa["max_temp"][self.jsonTemp]
-            saLow = sa["min_temp"][self.jsonTemp]
-            saCond = sa["comment"]
-            self.sa_forecast = f"{day_}     -     High: {saHigh}° {self.prettyTemp}     Low: {saLow}° {self.prettyTemp}           {saCond}"
-            out("debug@forecast", self.sa_forecast)
-
-            su = self.forecast_days[6]
-            day_ = su["day"]
-            suHigh = su["max_temp"][self.jsonTemp]
-            suLow = su["min_temp"][self.jsonTemp]
-            suCond = su["comment"]
-            self.su_forecast = f"{day_}     -     High: {suHigh}° {self.prettyTemp}      Low: {suLow}° {self.prettyTemp}           {suCond}"
-            out("debug@forecast", self.su_forecast)
-
-            mo1 = self.forecast_days[7]
-            day_ = mo1["day"]
-            mo1High = mo1["max_temp"][self.jsonTemp]
-            mo1Low = mo1["min_temp"][self.jsonTemp]
-            mo1Cond = mo1["comment"]
-            self.mo1_forecast = f"{day_}     -     High: {mo1High}° {self.prettyTemp}      Low: {mo1Low}° {self.prettyTemp}           {mo1Cond}"
-            out("debug@forecast", self.mo1_forecast)
+        self.forecast_days = json["daily"]
+        self.currCond = json["current"]
+        self.weather = []
+        for i in range(0, 8):
+            self.weather.append({
+                "day": f'{ctime(self.forecast_days[i]["dt"]).split(" ")[0]}, {ctime(self.forecast_days[i]["dt"]).split(" ")[1]} {ctime(self.forecast_days[i]["dt"]).split(" ")[2]}',
+                "high": round(self.forecast_days[i]["temp"]["max"]),
+                "low": round(self.forecast_days[i]["temp"]["min"]),
+                "condition": f'{makeFirstUpper(self.forecast_days[i]["weather"][0]["description"])} {getWeatherEmoji(self.forecast_days[i]["weather"][0]["id"], self.forecast_days[i]["dt"], self.forecast_days[i]["sunrise"], self.forecast_days[i]["sunset"])}'
+            })
 
 
 def out(type, msg):
@@ -135,7 +122,7 @@ class weatherGui(QMainWindow):
         super(weatherGui, self).__init__()
         out("info@weatherGui", "loading ui file...")
         uic.loadUi("weather.ui", self)
-        self.setWindowTitle("WeatherGui")
+        self.setWindowTitle("Weather")
         self.loadPrefs()
         
         self.show()
@@ -146,6 +133,28 @@ class weatherGui(QMainWindow):
         self.actionPrefs.triggered.connect(lambda: self.openPrefs())
         self.actionExport_Raw_JSON.triggered.connect(lambda: self.expJSON())
         self.actionReload_settings.triggered.connect(lambda: self.loadPrefs())
+
+    def getGeoLocal(city, self):
+        url = f"https://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={key}"
+        out("debug@apiCaller", f"location API request URL: {url}")
+        resp = requests.get(url)
+        out("debug@apiCaller", f"Server status: {str(resp.status_code)}")
+        if not str(resp.content).__contains__("current"):
+            out("error@apiCaller", "Error: Bad Location API response! Check your location.")
+            out("debug@apiCaller", str(resp.content))
+            message = QMessageBox()
+            message.setText(
+                "Error!\nBad Location API response!\nCheck your location.")
+            message.exec_()
+            return
+        self.jsonResp = json.loads(resp.content)
+        return self.jsonResp[0]
+
+    def getPrecipHourly(self, json):
+        if "rain" in json["current"]:
+            return json["current"]["rain"]["1h"]
+        else:
+            return "No rain."
 
     def loadPrefs(self):
         if os.path.isfile(f"{os.path.expanduser('~')}/.config/weatherGui/preferences.txt"):
@@ -173,17 +182,22 @@ class weatherGui(QMainWindow):
             self.fmt = content[0].split(" ")[1].strip()
             out("debug@format",  f"Setting format to '{self.fmt}'..")
             if self.fmt == "Imperial":
-                self.jsonFmt = "mile"
+                self.jsonFmt = "imperial"
                 self.jsonTemp = "f"
                 self.prettyTemp = "F"
                 self.prettyWind = "mph"
             elif self.fmt == "Metric":
-                self.jsonFmt = "km"
+                self.jsonFmt = "metric"
                 self.jsonTemp = "c"
                 self.prettyTemp = "C"
                 self.prettyWind = "km/h"
+            elif self.fmt == "Standard":
+                self.jsonFmt = "standard"
+                self.jsonTemp = "k"
+                self.prettyTemp = "K"
+                self.prettyWind = "m/sec"
             else:
-                self.jsonFmt = "mile"
+                self.jsonFmt = "imperial"
                 self.jsonTemp = "f"
                 self.prettyTemp = "F"
                 self.prettyWind = "mph"
@@ -195,17 +209,9 @@ class weatherGui(QMainWindow):
         else:
             out('debug@format', 'Not loading conf, no config file found')
     def getWeather_(self):
-        #loc = Nominatim(user_agent="GetLoc")
+        localInput = self.local.text()
 
-        # entering the location name
-        #getLoc = loc.geocode(self.local.text())
-
-        # printing latitude and longitude
-        #print("Latitude = ", getLoc.latitude)
-        #print("Longitude = ", getLoc.longitude)
-        local = self.local.text()
-
-        if local == "":
+        if localInput == "":
             message = QMessageBox()
             message.setText("Error!\nNo location specified!\nTry again.")
             message.exec_()
@@ -234,41 +240,65 @@ class weatherGui(QMainWindow):
             self.day8.setText("")
             self.jsonBrowser.setText("Loading...")
 
+            # Get Location
+
+            loc = Nominatim(user_agent="Crilum-PyQt5-Weather-App")
+
+            getLoc = loc.geocode(self.local.text(), addressdetails=True)
+
+            print(getLoc.raw)
+
+            # printing latitude and longitude
+            #print("Latitude = ", getLoc.latitude)
+            #print("Longitude = ", getLoc.longitude)
+
+            """url = f"https://api.openweathermap.org/geo/1.0/direct?q={str(localInput)}&limit=1&appid={key}"
+            resp = requests.get(url)
+            out("debug@apiCaller", f"Server status: {str(resp.status_code)}")
+            if not str(resp.content).__contains__("lat"):
+                out("error@apiCaller", f"Error: Bad Location API response! Check your location.\n\nServer response: {resp.status_code}\n{resp.content}")
+                message = QMessageBox()
+                message.setText(
+                    "Error!\nBad Location API response!\nCheck your location.")
+                message.exec_()
+                return
+            out("debug@apiCaller", f"Geolocation Response: {json.loads(resp.content)}\nAPI request URL: {url}")
+            self.localJSON = json.loads(resp.content)[0]"""
+  
             # Get weather
-            url = "https://weatherdbi.herokuapp.com/data/weather/" + str(local)
+            url = f"https://api.openweathermap.org/data/3.0/onecall?lat={getLoc.latitude}&lon={getLoc.longitude}&units={self.fmt}&appid={key}"
             out("debug@apiCaller", f"API request URL: {url}")
             resp = requests.get(url)
             out("debug@apiCaller", f"Server status: {str(resp.status_code)}")
-            if not str(resp.content).__contains__("currentConditions"):
-                out("error@apiCaller", "Error: Bad API response! Check your location.")
+            if not str(resp.content).__contains__("current"):
+                out("error@apiCaller", f"Error: Bad API response! Check your location.\n\nServer response: {resp.status_code}\n{resp.content}")
                 message = QMessageBox()
                 message.setText(
                     "Error!\nBad API response!\nCheck your location.")
                 message.exec_()
                 return
             self.jsonResp = json.loads(resp.content)
-            #self.jsonResp = {'region': 'Logan, UT', 'currentConditions': {'dayhour': 'Tuesday 2:00 PM', 'temp': {'c': 18, 'f': 65}, 'precip': '1%', 'humidity': '23%', 'wind': {'km': 18, 'mile': 11}, 'iconURL': 'https://ssl.gstatic.com/onebox/weather/64/partly_cloudy.png', 'comment': 'Mostly cloudy'}, 'next_days': [{'day': 'Tuesday', 'comment': 'Partly cloudy', 'max_temp': {'c': 18, 'f': 65}, 'min_temp': {'c': 4, 'f': 39}, 'iconURL': 'https://ssl.gstatic.com/onebox/weather/48/partly_cloudy.png'}, {'day': 'Wednesday', 'comment': 'Sunny', 'max_temp': {'c': 24, 'f': 75}, 'min_temp': {'c': 7, 'f': 44}, 'iconURL': 'https://ssl.gstatic.com/onebox/weather/48/sunny.png'}, {'day': 'Thursday', 'comment': 'Partly cloudy', 'max_temp': {'c': 30, 'f': 86}, 'min_temp': {'c': 13, 'f': 55}, 'iconURL': 'https://ssl.gstatic.com/onebox/weather/48/partly_cloudy.png'}, {'day': 'Friday', 'comment': 'Partly cloudy', 'max_temp': {'c': 26, 'f': 79}, 'min_temp': {'c': 12, 'f': 53}, 'iconURL': 'https://ssl.gstatic.com/onebox/weather/48/partly_cloudy.png'}, {'day': 'Saturday', 'comment': 'Showers', 'max_temp': {'c': 18, 'f': 64}, 'min_temp': {'c': 7, 'f': 44}, 'iconURL': 'https://ssl.gstatic.com/onebox/weather/48/rain_light.png'}, {'day': 'Sunday', 'comment': 'Showers', 'max_temp': {'c': 16, 'f': 61}, 'min_temp': {'c': 4, 'f': 39}, 'iconURL': 'https://ssl.gstatic.com/onebox/weather/48/rain_light.png'}, {'day': 'Monday', 'comment': 'Showers', 'max_temp': {'c': 13, 'f': 56}, 'min_temp': {'c': 4, 'f': 39}, 'iconURL': 'https://ssl.gstatic.com/onebox/weather/48/rain_light.png'}, {'day': 'Tuesday', 'comment': 'Scattered showers', 'max_temp': {'c': 16, 'f': 61}, 'min_temp': {'c': 4, 'f': 39}, 'iconURL': 'https://ssl.gstatic.com/onebox/weather/48/rain_s_cloudy.png'}], 'contact_author': {'email': 'communication.with.users@gmail.com', 'auth_note': 'Mail me for feature requests, improvement, bug, help, ect... Please tell me if you want me to provide any other free easy-to-use API services'}, 'data_source': 'https://www.google.com/search?lr=lang_en&q=weather+in+logan,+utah'}
+            # Sample response for testing
+            # self.jsonResp = {}
             self.actionExport_Raw_JSON.setEnabled(True)
 
             # parse json and find the data
             weather = []
-            currCond = self.jsonResp["currentConditions"]
-            weather.append(self.jsonResp["region"])
-            weather.append(currCond["dayhour"])
-            weather.append(currCond["temp"][self.jsonTemp])
-            weather.append(currCond["comment"])
-            weather.append(currCond["precip"])
-            weather.append(currCond["wind"][self.jsonFmt])
-            statImg = requests.get(currCond["iconURL"], allow_redirects=True)
+            currCond = self.jsonResp["current"]
+            weather.append(f'{getLoc.raw["address"]["city"]}, {getLoc.raw["address"]["state"]}, {getLoc.raw["address"]["country_code"]}')    # self.localJSON["name"] + ", " + self.localJSON["state"])
+            weather.append(ctime(currCond["dt"]))
+            weather.append(round(currCond["temp"]))
+            weather.append(f'{makeFirstUpper(currCond["weather"][0]["description"])} {getWeatherEmoji(currCond["weather"][0]["id"], currCond["dt"], currCond["sunrise"], currCond["sunset"])}')
+            weather.append(f'{self.getPrecipHourly(self.jsonResp)}')
+            weather.append(round(currCond["wind_speed"]))
+            statImg = requests.get(f"https://openweathermap.org/img/wn/{currCond['weather'][0]['icon']}d@2x.png", allow_redirects=True)
             icon = Path("/tmp/cwt_status.png")
             icon.write_bytes(statImg.content)
-            #print("\nThe current Temperature: " + str(currTemp))
 
             # show the data
             tab = self.tabWidget
             tab.setEnabled(True)
             label = self.weatherInfo
-            #jsonViewer = self.jsonView
             self.fullWeather = "Day and Time: " + str(weather[1]) + "\nLocation: " + str(weather[0]) + "\nTemperature: " + str(
                 weather[2]) + f"° {self.prettyTemp}" + "\nPrecipitation: " + str(weather[4]) + "\nWind: " + str(weather[5]) + f" {self.prettyWind}\nCondition: " + str(weather[3])
             label.setText(self.fullWeather)
@@ -276,14 +306,12 @@ class weatherGui(QMainWindow):
             self.jsonBrowser.setText(str(self.jsonResp))
             self.actionSave_As.setEnabled(True)
             self.forecast = Forecast(self.jsonResp)
-            self.day1.setText(self.forecast.mo_forecast)
-            self.day2.setText(self.forecast.tu_forecast)
-            self.day3.setText(self.forecast.we_forecast)
-            self.day4.setText(self.forecast.th_forecast)
-            self.day5.setText(self.forecast.fr_forecast)
-            self.day6.setText(self.forecast.sa_forecast)
-            self.day7.setText(self.forecast.su_forecast)
-            self.day8.setText(self.forecast.mo1_forecast)
+            day_list = ["day1", "day2", "day3", "day4", "day5", "day6", "day7", "day8"]
+            for i in range(0, 8):
+                getattr(self, day_list[i]).setText(self.forecast.weather[i]["day"])
+                getattr(self, f'{day_list[i]}_high').setText(f'High:  {self.forecast.weather[i]["high"]}°')
+                getattr(self, f'{day_list[i]}_low').setText(f'Low:  {self.forecast.weather[i]["low"]}°')
+                getattr(self, f'{day_list[i]}_condition').setText(self.forecast.weather[i]["condition"])
 
     def saveAs(self):
         name = QtWidgets.QFileDialog.getSaveFileName(
@@ -347,13 +375,17 @@ class prefs(QWidget):
                 if self.fmt == "Imperial":
                     self.fmtPref.setItemText(0, "Imperial")
                     self.fmtPref.setItemText(1, "Metric")
+                    self.fmtPref.setItemText(2, "Standard (Kelvin)")
                 elif self.fmt == "Metric":
                     self.fmtPref.setItemText(0, "Metric")
                     self.fmtPref.setItemText(1, "Imperial")
+                    self.fmtPref.setItemText(2, "Standard (Kelvin)")
+                elif self.fmt == "Standard (Kelvin)":
+                    self.fmtPref.setItemText(2, "Standard (Kelvin)")
+                    self.fmtPref.setItemText(0, "Metric")
+                    self.fmtPref.setItemText(1, "Imperial")
                 else:
-                    print("error, bad value:", self.fmt)
-                    print(self.fmt)
-                    print(type(self.fmt))
+                    out("error@format", "error, bad value:" + self.fmt)
             else:
                 out("debug@format", "Continuing..")
 
@@ -376,6 +408,11 @@ class prefs(QWidget):
                 self.jsonTemp = "c"
                 self.prettyTemp = "C"
                 self.prettyWind = "km/h"
+            elif self.fmt == "Standard":
+                self.jsonFmt = "standard"
+                self.jsonTemp = "k"
+                self.prettyTemp = "K"
+                self.prettyWind = "m/sec"
             else:
                 self.jsonFmt = "mile"
                 self.jsonTemp = "f"

@@ -55,6 +55,11 @@
      <string>Metric</string>
     </property>
    </item>
+   <item>
+    <property name="text">
+     <string>Standard (Kelvin)</string>
+    </property>
+   </item>
   </widget>
   <widget class="QLabel" name="fmtLab">
    <property name="geometry">
